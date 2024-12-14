@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Chat Client</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f7fa;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #chatContainer {
+            width: 100%;
+            max-width: 500px;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #messages {
+            list-style: none;
+            margin: 0;
+            padding: 10px;
+            overflow-y: auto;
+            flex: 1;
+            max-height: 400px;
+            background: #f9fafb;
+            scrollbar-width: thin;
+            scrollbar-color: #c3c4c7 #f5f7fa;
+        }
+
+        #messages li {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+
+        #messages li:nth-child(odd) {
+            background: #eef2f7;
+        }
+
+        .joined {
+            color: green;
+            font-weight: bold;
+        }
+
+        .left {
+            color: red;
+            font-weight: bold;
+        }
+
+        .user-message {
+            background: #007bff;
+            color: #ffffff;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+
+        #messageInputContainer {
+            display: flex;
+            padding: 10px;
+            background: #ffffff;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        #messageInput {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        #messageInput:focus {
+            border-color: #007bff;
+        }
+
+        #sendButton {
+            padding: 10px 20px;
+            margin-left: 10px;
+            border: none;
+            background: #007bff;
+            color: #ffffff;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        #sendButton:hover {
+            background: #0056b3;
+        }
+
+        /* Add scroll behavior */
+        #messages {
+            scroll-behavior: smooth;
+        }
+
+        h1#title {
+            font-size: 24px;
+            color: #333;
+            text-align: center;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 600px) {
+            #chatContainer {
+                width: 90%;
+            }
+
+            #messageInput {
+                font-size: 14px;
+            }
+
+            #sendButton {
+                font-size: 14px;
+            }
+
+            h1#title {
+                font-size: 20px;
+                margin: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="chatContainer">
+        <h1 id="title">Real Time Chat App</h1>
+        <ul id="messages"></ul>
+        <div id="messageInputContainer">
+            <input type="text" id="messageInput" placeholder="Type your message here..."/>
+            <button id="sendButton">Send</button>
+        </div>
+    </div>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <script>
+        //connect to socket io server
+        const socket = io("ws://localhost:3002");
+
+        //DOM elements
+        const messageInput = document.getElementById("messageInput");
+        const sendButton = document.getElementById("sendButton");
+        const messagesList = document.getElementById("messages");
+
+        //function to add new message to the chat UI
+        function addMessage(message, className) {
+            const li = document.createElement("li");
+            li.textContent = message;
+
+            if (className) {
+                li.classList.add(className);
+            }
+            messagesList.appendChild(li);
+            messagesList.scrollTop = messagesList.scrollHeight; // Auto-scroll to the latest message
+        }
+
+        socket.on("message", (data) => {
+            addMessage(`${data.username}: ${data.message}`);
+        });
+
+        socket.on("user-joined", (data) => {
+            addMessage(data.message, "joined");
+        });
+
+        socket.on("user-left", (data) => {
+            addMessage(data.message, "left");
+        });
+
+        sendButton.addEventListener("click", () => {
+            const message = messageInput.value.trim();
+
+            if (message !== "") {
+                socket.emit("newMessage", { message, username: socket.id });
+                addMessage(`You: ${message}`, "user-message"); // Add the user's own message to UI
+                messageInput.value = "";
+            }
+        });
+
+        socket.on("connect", () => {
+            addMessage("You have joined the chat");
+        });
+    </script>
+</body>
+</html>
